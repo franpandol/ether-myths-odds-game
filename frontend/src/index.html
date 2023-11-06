@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betting Contract</title>
+</head>
+<body>
+    <h1>Betting Contract</h1>
+    <p>Your Address: <span id="userAddress"></span></p>
+    <p>Total Bets on Team A: <span id="totalBetsA"></span> Ether</p>
+    <p>Total Bets on Team B: <span id="totalBetsB"></span> Ether</p>
+    <button onclick="placeBet(1)">Bet on Team A</button>
+    <button onclick="placeBet(2)">Bet on Team B</button>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script>
+        let contractABI;
+        var contractAddress;
+        var contract;
+        async function initialize() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('MetaMask or a similar Ethereum wallet extension is required.');
+                return;
+            }
+            const web3 = new Web3(window.ethereum);
+            document.getElementById('userAddress').textContent = window.ethereum.selectedAddress;
+
+
+            const responseContractAddress = await fetch('contracts_build/contract-address.json');
+            contractAddress = await responseContractAddress.json();
+            console.log("contractAddress")
+            console.log(contractAddress["Betting"])
+            const response = await fetch('contracts_build/Betting.json');
+            
+
+            contractABI = await response.json();
+            contract = new web3.eth.Contract(contractABI["abi"], contractAddress["Betting"]);
+            
+            const totalBetsA = await contract.methods.totalBetsA().call();
+            const totalBetsB = await contract.methods.totalBetsB().call();
+
+            document.getElementById('totalBetsA').textContent = web3.utils.fromWei(totalBetsA, 'ether');
+            document.getElementById('totalBetsB').textContent = web3.utils.fromWei(totalBetsB, 'ether');
+        }
+
+        async function placeBet(team) {
+            try {
+                await contract.methods.placeBet(team).send({
+                    from: window.ethereum.selectedAddress,
+                    value: web3.utils.toWei('0.01', 'ether')  // Betting 1 Ether
+                });
+                alert('Bet placed successfully!');
+                initialize();  // Refresh bet amounts
+            } catch (error) {
+                console.error('Error placing the bet:', error);
+                alert('Error placing the bet. Check the console for details.');
+            }
+        }
+
+        initialize();
+    </script>
+</body>
+</html>
